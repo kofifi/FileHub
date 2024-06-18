@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 import pandas as pd
 
 # Database setup
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://file_app_user:secure_password@172.28.20.130:5432/file_app')
+DATABASE_URL = "postgresql://file_app_user:secure_password@postgresql:5432/file_app"
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 session_factory = sessionmaker(bind=engine)
