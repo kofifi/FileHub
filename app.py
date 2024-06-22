@@ -5,9 +5,14 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignK
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, scoped_session
 from sqlalchemy.sql import func
 import pandas as pd
+from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Database setup
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://file_app_user:secure_password@172.28.20.130:5432/file_app')
+DATABASE_URL = os.getenv('DATABASE_URL')
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 session_factory = sessionmaker(bind=engine)
@@ -83,6 +88,9 @@ create_default_admin()
 # Ensure 'uploads' directory exists
 os.makedirs('uploads', exist_ok=True)
 
+# Read allowed extensions from environment variable
+allowed_extensions = os.getenv('ALLOWED_EXTENSIONS').split(',')
+
 # Streamlit interface
 st.title("Alfa File Hub")
 
@@ -115,9 +123,6 @@ else:
         new_role = st.sidebar.selectbox("Role", ["admin", "user", "readonly"])
         if st.sidebar.button("Add User"):
             add_user(new_username, new_password, new_role)
-
-    # Allowed file extensions
-    allowed_extensions = ["pdf", "csv", "txt", "md", "markdown", "html", "docx"]
 
     if role != 'readonly':
         uploaded_files = st.file_uploader("Select files to upload", accept_multiple_files=True)
@@ -180,8 +185,11 @@ def load_data():
             query = query.filter(File.enabled == True)
         elif enabled_filter == "Disabled":
             query = query.filter(File.enabled == False)
-        if date_filter:
-            query = query.filter(func.date(File.created_at) == date_filter)
+        if date_from:
+            query = query.filter(File.created_at >= date_from)
+        if date_to:
+            date_to_end_of_day = datetime.combine(date_to, datetime.max.time())
+            query = query.filter(File.created_at <= date_to_end_of_day)
     else:
         # User-specific filters (no user filter)
         query = query.filter(File.user_id == user_id)
@@ -191,8 +199,11 @@ def load_data():
             query = query.filter(File.enabled == True)
         elif enabled_filter == "Disabled":
             query = query.filter(File.enabled == False)
-        if date_filter:
-            query = query.filter(func.date(File.created_at) == date_filter)
+        if date_from:
+            query = query.filter(File.created_at >= date_from)
+        if date_to:
+            date_to_end_of_day = datetime.combine(date_to, datetime.max.time())
+            query = query.filter(File.created_at <= date_to_end_of_day)
 
     # Exclude records where Deleted = True
     query = query.filter(File.deleted == False)
@@ -257,19 +268,22 @@ else:
             # Search filters with tracking for changes
             st.subheader("Search Filters")
 
-            col1, col2 = st.columns([4, 1])
-            col3, col4 = st.columns([1, 1])
+            col1, col2, col3 = st.columns([4, 1, 1])
+            col4, col5 = st.columns([1, 1])
 
             with col1:
                 search_query = st.text_input("Search files", key="search_query", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col2:
-                date_filter = st.date_input("Filter by date", key="date_filter", on_change=lambda: st.session_state.update({'filters_changed': True}))
+                date_from = st.date_input("Date from", key="date_from", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col3:
-                user_filter = st.selectbox("Filter by user", ["All"] + [user.username for user in Session().query(User).all()], key="user_filter", on_change=lambda: st.session_state.update({'filters_changed': True}))
+                date_to = st.date_input("Date to", key="date_to", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col4:
+                user_filter = st.selectbox("Filter by user", ["All"] + [user.username for user in Session().query(User).all()], key="user_filter", on_change=lambda: st.session_state.update({'filters_changed': True}))
+
+            with col5:
                 enabled_filter = st.selectbox("Enabled status", ["All", "Enabled", "Disabled"], key="enabled_filter", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
         elif role == 'readonly':
@@ -278,14 +292,15 @@ else:
             # Read-only user-specific search filters
             st.subheader("Search Filters")
 
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([4, 2])
             col3, col4 = st.columns([1, 1])
 
             with col1:
                 search_query = st.text_input("Search files", key="search_query", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col2:
-                date_filter = st.date_input("Filter by date", key="date_filter", on_change=lambda: st.session_state.update({'filters_changed': True}))
+                date_from = st.date_input("Date from", key="date_from", on_change=lambda: st.session_state.update({'filters_changed': True}))
+                date_to = st.date_input("Date to", key="date_to", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col3:
                 st.write(" ")
@@ -299,14 +314,15 @@ else:
             # User-specific search filters
             st.subheader("Search Filters")
 
-            col1, col2 = st.columns([4, 1])
+            col1, col2 = st.columns([4, 2])
             col3, col4 = st.columns([1, 1])
 
             with col1:
                 search_query = st.text_input("Search files", key="search_query", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col2:
-                date_filter = st.date_input("Filter by date", key="date_filter", on_change=lambda: st.session_state.update({'filters_changed': True}))
+                date_from = st.date_input("Date from", key="date_from", on_change=lambda: st.session_state.update({'filters_changed': True}))
+                date_to = st.date_input("Date to", key="date_to", on_change=lambda: st.session_state.update({'filters_changed': True}))
 
             with col3:
                 st.write(" ")
