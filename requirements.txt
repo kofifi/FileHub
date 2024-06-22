@@ -2,5 +2,4 @@ streamlit
 sqlalchemy
 psycopg2-binary
 bcrypt
-streamlit-aggrid
 pandas
