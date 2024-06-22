@@ -1,7 +1,7 @@
 import os
 import bcrypt
 import streamlit as st
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, DateTime, text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, scoped_session
 from sqlalchemy.sql import func
 import pandas as pd
@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Database setup
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = "postgresql://file_app_user:secure_password@postgresql:5432/file_app"
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 session_factory = sessionmaker(bind=engine)
